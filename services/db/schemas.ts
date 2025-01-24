@@ -36,3 +36,13 @@ export const budgets = sqliteTable("budgets", {
 		.notNull()
 		.default(false),
 });
+
+export const users = sqliteTable("users", {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    currency: text("currency").notNull().default("USD"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+        .notNull()
+        .default(sql`CURRENT_TIMESTAMP`),
+});

@@ -8,6 +8,13 @@
       "when": 1737686091796,
       "tag": "0000_pink_sersi",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1737732894617,
+      "tag": "0001_equal_golden_guardian",
+      "breakpoints": true
     }
   ]
 }
