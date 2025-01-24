@@ -1,5 +1,10 @@
+import * as schema from "@/services/db/schemas";
+import { drizzle } from "drizzle-orm/expo-sqlite";
+import * as Crypto from 'expo-crypto';
+import { useDrizzleStudio } from "expo-drizzle-studio-plugin";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { useSQLiteContext } from "expo-sqlite";
 import React, { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
@@ -7,23 +12,43 @@ export default function SetupAccountScreen() {
     const [accountType, setAccountType] = useState<string>("Bank");
     const [accountName, setAccountName] = useState<string>("");
     const [initialBalance, setInitialBalance] = useState<string>("");
+    const [loading, setLoading] = useState<boolean>(false);
+
+    const db = useSQLiteContext()
+
+    const drizzleDB = drizzle(db, { schema })
+
+    useDrizzleStudio(db)
+
     const router = useRouter();
 
-    const handleNext = () => {
-        // Save the account data (e.g., call to local DB or state management)
-        const accountData = {
-            id: Date.now().toString(),
-            type: accountType,
-            name: accountName,
-            balance: parseFloat(initialBalance),
-            createdAt: new Date().toISOString()
-        };
-        
-        // Here you would typically save to your storage solution
-        console.log('Saving account:', accountData);
-        
-        // Navigate to dashboard with initial state
-        router.replace("/(tabs)");
+    const handleNext = async () => {
+const UUID = Crypto.randomUUID()
+        try {
+            setLoading(true);
+            // Save the account data (e.g., call to local DB or state management)
+            const accountData = {
+                id: UUID,
+                type: accountType,
+                name: accountName,
+                balance: Number.parseFloat(initialBalance),
+            };
+
+
+            // drizzleDB.insert(accounts).
+            const insertAccount = await drizzleDB.insert(schema.accounts).values(accountData)
+
+            // Here you would typically save to your storage solution
+            console.log('Saving account:', insertAccount.lastInsertRowId);
+
+            // Navigate to dashboard with initial state
+            router.replace("/(tabs)");
+        } catch (error) {
+            console.error('Error creating account:', error);
+            // Here you might want to show an error message to the user
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -60,9 +85,9 @@ export default function SetupAccountScreen() {
                 </Text>
                 <Pressable
                     onPress={handleNext}
-                    disabled={!accountName || !initialBalance}
+                    disabled={!accountName || !initialBalance || loading}
                     style={({ pressed }) => [{
-                        opacity: (!accountName || !initialBalance) ? 0.5 : pressed ? 0.8 : 1
+                        opacity: (!accountName || !initialBalance || loading) ? 0.5 : pressed ? 0.8 : 1
                     }]}
                 >
                     <LinearGradient
@@ -71,7 +96,7 @@ export default function SetupAccountScreen() {
                         end={{ x: 1, y: 1 }}
                         style={styles.button}
                     >
-                        <Text style={styles.buttonText}>Start Tracking</Text>
+                        <Text style={styles.buttonText}>{loading ? 'Loading...' : 'Start Tracking'}</Text>
                     </LinearGradient>
                 </Pressable>
             </View>
