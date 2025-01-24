@@ -3,10 +3,18 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import 'react-native-reanimated';
+import { drizzle } from "drizzle-orm/expo-sqlite";
+import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
+import migrations from "@/drizzle/migrations";
+
+
 
 import { useColorScheme } from '@/components/useColorScheme';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SQLiteProvider, openDatabaseSync } from 'expo-sqlite';
+import { ActivityIndicator } from 'react-native';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -20,6 +28,7 @@ export const unstable_settings = {
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
+
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -46,15 +55,24 @@ export default function RootLayout() {
 }
 
 function RootLayoutNav() {
+  const DBNAME = 'fizcal.db';
   const colorScheme = useColorScheme();
-
+  const expoDB = openDatabaseSync(DBNAME)
+  const db = drizzle(expoDB)
+  const { sucess, error } = useMigrations(db, migrations)
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name='boarding' options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-      </Stack>
-    </ThemeProvider>
+    <GestureHandlerRootView>
+      <Suspense fallback={<ActivityIndicator />}>
+        <SQLiteProvider databaseName="test.db" useSuspense={true}>
+          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+            <Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name='boarding' options={{ headerShown: false }} />
+              <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+            </Stack>
+          </ThemeProvider>
+        </SQLiteProvider>
+      </Suspense>
+    </GestureHandlerRootView >
   );
 }
