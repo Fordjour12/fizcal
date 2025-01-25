@@ -3,9 +3,13 @@ import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const accounts = sqliteTable("accounts", {
 	id: text("id").primaryKey(),
+	userId: text("user_id")
+		.notNull()
+		.references(() => users.id),
 	name: text("name").notNull(),
 	type: text("type").notNull(),
 	balance: real("balance").notNull().default(0),
+	accountNumber: text("account_number"),
 	createdAt: integer("created_at", { mode: "timestamp" })
 		.notNull()
 		.default(sql`CURRENT_TIMESTAMP`),

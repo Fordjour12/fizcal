@@ -15,6 +15,13 @@
       "when": 1737732894617,
       "tag": "0001_equal_golden_guardian",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1737739823904,
+      "tag": "0002_powerful_jubilee",
+      "breakpoints": true
     }
   ]
 }
