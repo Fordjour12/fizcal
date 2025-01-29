@@ -1,5 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { StyleSheet, Text, View } from "react-native";
+import { Link } from "expo-router";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, { FadeIn, FadeOut, Layout } from "react-native-reanimated";
 
 type Budget = {
@@ -49,33 +50,37 @@ export const BudgetList: React.FC<BudgetListProps> = ({ budgets }) => {
 	return (
 		<View style={styles.budgetsList}>
 			{budgets.map((budget, index) => (
-				<Animated.View
-					key={budget.id}
-					entering={FadeIn.delay(index * 100).duration(500)}
-					exiting={FadeOut.duration(300)}
-					layout={Layout.springify()}
-				>
-					<LinearGradient
-						colors={getProgressColor(budget.spent || 0, budget.amount)}
-						style={styles.budgetCard}
-					>
-						<View style={styles.budgetInfo}>
-							<Text style={styles.budgetCategory}>{budget.category}</Text>
-							<Text style={styles.budgetPeriod}>
-								{budget.period.charAt(0).toUpperCase() + budget.period.slice(1)}
-								{budget.isRecurring ? " (Recurring)" : ""}
-							</Text>
-						</View>
-						<View style={styles.budgetAmounts}>
-							<Text style={styles.budgetSpent}>
-								Spent: {formatCurrency(budget.spent || 0)}
-							</Text>
-							<Text style={styles.budgetLimit}>
-								Limit: {formatCurrency(budget.amount)}
-							</Text>
-						</View>
-					</LinearGradient>
-				</Animated.View>
+				<Link key={budget.id} href={`/budget/update/${budget.id}`} asChild>
+					<TouchableOpacity>
+						<Animated.View
+							entering={FadeIn.delay(index * 100).duration(500)}
+							exiting={FadeOut.duration(300)}
+							layout={Layout.springify()}
+						>
+							<LinearGradient
+								colors={getProgressColor(budget.spent || 0, budget.amount)}
+								style={styles.budgetCard}
+							>
+								<View style={styles.budgetInfo}>
+									<Text style={styles.budgetCategory}>{budget.category}</Text>
+									<Text style={styles.budgetPeriod}>
+										{budget.period.charAt(0).toUpperCase() +
+											budget.period.slice(1)}
+										{budget.isRecurring ? " (Recurring)" : ""}
+									</Text>
+								</View>
+								<View style={styles.budgetAmounts}>
+									<Text style={styles.budgetSpent}>
+										Spent: {formatCurrency(budget.spent || 0)}
+									</Text>
+									<Text style={styles.budgetLimit}>
+										Limit: {formatCurrency(budget.amount)}
+									</Text>
+								</View>
+							</LinearGradient>
+						</Animated.View>
+					</TouchableOpacity>
+				</Link>
 			))}
 		</View>
 	);
