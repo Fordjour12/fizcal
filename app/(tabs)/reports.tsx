@@ -1,21 +1,20 @@
-import React, { useCallback, useEffect, useState } from "react";
-import {
-	View,
-	Text,
-	StyleSheet,
-	ScrollView,
-	TouchableOpacity,
-	Dimensions,
-	RefreshControl,
-} from "react-native";
-import { LineChart, PieChart } from "react-native-chart-kit";
-import { Ionicons } from "@expo/vector-icons";
+import RecentTransactions from '@/components/RecentTransactions';
 import { useAuth } from "@/contexts/auth";
 import * as schema from "@/services/db/schemas";
 import { drizzle } from "drizzle-orm/expo-sqlite";
-import { useSQLiteContext } from "expo-sqlite";
 import { LinearGradient } from "expo-linear-gradient";
-import RecentTransactions from '@/components/RecentTransactions';
+import { useSQLiteContext } from "expo-sqlite";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+	Dimensions,
+	RefreshControl,
+	ScrollView,
+	StyleSheet,
+	Text,
+	TouchableOpacity,
+	View,
+} from "react-native";
+import { LineChart, PieChart } from "react-native-chart-kit";
 
 type TimeFrame = "week" | "month" | "year";
 
@@ -41,7 +40,7 @@ export default function Reports() {
 	const [totalExpense, setTotalExpense] = useState(0);
 	const [categoryTotals, setCategoryTotals] = useState<CategoryTotal[]>([]);
 
-	const { session } = useAuth();
+	const { user } = useAuth();
 	const sqlite = useSQLiteContext();
 	const db = drizzle(sqlite, { schema });
 
@@ -57,11 +56,11 @@ export default function Reports() {
 	];
 
 	const loadData = useCallback(async () => {
-		if (!session?.user?.id) return;
+		if (!user?.id) return;
 
 		try {
+			const endDate = new Date();
 			const startDate = new Date();
-			let endDate = new Date();
 
 			// Set date range based on timeframe
 			switch (activeTimeFrame) {
@@ -80,19 +79,25 @@ export default function Reports() {
 			const transactionResults = await db.query.transactions.findMany({
 				where: (transactions, { and, gte, lte }) =>
 					and(
-						gte(transactions.date, startDate.getTime()),
-						lte(transactions.date, endDate.getTime()),
+						gte(transactions.date, startDate.valueOf()),
+						lte(transactions.date, endDate.valueOf()),
 					),
 			});
 
-			setTransactions(transactionResults as Transaction[]);
+			// Ensure proper date handling for transactions
+			const processedTransactions = transactionResults.map(t => ({
+				...t,
+				date: new Date(t.date)
+			}));
+
+			setTransactions(processedTransactions as Transaction[]);
 
 			// Calculate totals
 			let income = 0;
 			let expense = 0;
 			const categoryMap = new Map<string, number>();
 
-			transactionResults.forEach((t) => {
+			for (const t of transactionResults) {
 				if (t.type === "income") {
 					income += t.amount;
 				} else {
@@ -100,7 +105,7 @@ export default function Reports() {
 					const currentTotal = categoryMap.get(t.category) || 0;
 					categoryMap.set(t.category, currentTotal + t.amount);
 				}
-			});
+			}
 
 			setTotalIncome(income);
 			setTotalExpense(expense);
@@ -118,7 +123,7 @@ export default function Reports() {
 		} catch (error) {
 			console.error("Error loading transactions:", error);
 		}
-	}, [session?.user?.id, db, activeTimeFrame]);
+	}, [user?.id, db, activeTimeFrame]);
 
 	useEffect(() => {
 		loadData();
@@ -206,7 +211,7 @@ export default function Reports() {
 						style={[
 							styles.timeFrameButton,
 							activeTimeFrame === timeFrame &&
-								styles.timeFrameButtonActive,
+							styles.timeFrameButtonActive,
 						]}
 						onPress={() => setActiveTimeFrame(timeFrame)}
 					>
@@ -214,7 +219,7 @@ export default function Reports() {
 							style={[
 								styles.timeFrameButtonText,
 								activeTimeFrame === timeFrame &&
-									styles.timeFrameButtonTextActive,
+								styles.timeFrameButtonTextActive,
 							]}
 						>
 							{timeFrame.charAt(0).toUpperCase() + timeFrame.slice(1)}
@@ -341,7 +346,7 @@ export default function Reports() {
 			{/* Recent Transactions */}
 			<View style={styles.transactionList}>
 				<Text style={styles.sectionTitle}>Recent Transactions</Text>
-				<RecentTransactions/>
+				<RecentTransactions />
 			</View>
 		</ScrollView>
 	);

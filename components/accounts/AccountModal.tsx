@@ -1,3 +1,4 @@
+import type { Account, FormData } from "@/app";
 import React from "react";
 import {
 	Modal,
@@ -7,7 +8,6 @@ import {
 	TouchableOpacity,
 	View,
 } from "react-native";
-import type { Account, FormData } from "../types";
 
 type AccountModalProps = {
 	visible: boolean;

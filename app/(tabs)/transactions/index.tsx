@@ -3,19 +3,17 @@ import { useAuth } from "@/contexts/auth";
 import * as schema from "@/services/db/schemas";
 import { drizzle } from "drizzle-orm/expo-sqlite";
 import { LinearGradient } from "expo-linear-gradient";
-import { Link } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useCallback, useEffect, useState } from "react";
 import {
 	Modal,
-	Pressable,
 	RefreshControl,
 	ScrollView,
 	StyleSheet,
 	Text,
 	TextInput,
 	TouchableOpacity,
-	View,
+	View
 } from "react-native";
 import Animated, { FadeIn, FadeOut, Layout } from "react-native-reanimated";
 
@@ -48,16 +46,16 @@ export default function TransactionsScreen() {
 		description: "",
 	});
 
-	const { session } = useAuth();
+	const { user } = useAuth();
 	const sqlite = useSQLiteContext();
 	const db = drizzle(sqlite, { schema });
 
 	const loadData = useCallback(async () => {
-		if (!session?.user?.id) return;
+		if (!user?.id) return;
 
 		// Load accounts
 		const accountResults = await db.query.accounts.findMany({
-			where: (accounts, { eq }) => eq(accounts.userId, session.user.id),
+			where: (accounts, { eq }) => eq(accounts.userId, user.id),
 			columns: {
 				id: true,
 				name: true,
@@ -76,7 +74,7 @@ export default function TransactionsScreen() {
 				),
 		});
 		setTransactions(transactionResults as Transaction[]);
-	}, [session?.user?.id, db]);
+	}, [user?.id, db]);
 
 	useEffect(() => {
 		loadData();
@@ -89,7 +87,7 @@ export default function TransactionsScreen() {
 	}, [loadData]);
 
 	const handleAddTransaction = async () => {
-		if (!session?.user?.id || !formData.accountId) return;
+		if (!user?.id || !formData.accountId) return;
 
 		try {
 			const newTransaction = {
@@ -117,7 +115,7 @@ export default function TransactionsScreen() {
 					.set({
 						balance: account.balance + balanceChange,
 					})
-					.where((accounts) => accounts.id.equals(formData.accountId));
+					.where((accounts: { id: { equals: (arg0: string) => any; }; }) => accounts.id.equals(formData.accountId));
 			}
 
 			await db.insert(schema.transactions).values(newTransaction);
@@ -139,10 +137,11 @@ export default function TransactionsScreen() {
 		});
 	};
 
-	const formatCurrency = (amount: number) => {
+	const formatCurrency = (amount: number, accountId: string) => {
+		const account = accounts.find((a) => a.id === accountId);
 		return amount.toLocaleString("en-US", {
 			style: "currency",
-			currency: "USD",
+			currency: account?.currency || "USD",
 		});
 	};
 
@@ -220,7 +219,7 @@ export default function TransactionsScreen() {
 										]}
 									>
 										{transaction.type === "income" ? "+" : "-"}
-										{formatCurrency(Math.abs(transaction.amount))}
+										{formatCurrency(Math.abs(transaction.amount), transaction.accountId)}
 									</Text>
 								</LinearGradient>
 							</Animated.View>
@@ -267,7 +266,7 @@ export default function TransactionsScreen() {
 										style={[
 											styles.accountButton,
 											formData.accountId === account.id &&
-												styles.accountButtonActive,
+											styles.accountButtonActive,
 										]}
 										onPress={() =>
 											setFormData({
@@ -280,7 +279,7 @@ export default function TransactionsScreen() {
 											style={[
 												styles.accountButtonText,
 												formData.accountId === account.id &&
-													styles.accountButtonTextActive,
+												styles.accountButtonTextActive,
 											]}
 										>
 											{account.name}
@@ -297,7 +296,7 @@ export default function TransactionsScreen() {
 									style={[
 										styles.typeButton,
 										formData.type === "expense" &&
-											styles.typeButtonActive,
+										styles.typeButtonActive,
 									]}
 									onPress={() =>
 										setFormData({ ...formData, type: "expense" })
@@ -307,7 +306,7 @@ export default function TransactionsScreen() {
 										style={[
 											styles.typeButtonText,
 											formData.type === "expense" &&
-												styles.typeButtonTextActive,
+											styles.typeButtonTextActive,
 										]}
 									>
 										Expense
@@ -317,7 +316,7 @@ export default function TransactionsScreen() {
 									style={[
 										styles.typeButton,
 										formData.type === "income" &&
-											styles.typeButtonActive,
+										styles.typeButtonActive,
 									]}
 									onPress={() =>
 										setFormData({ ...formData, type: "income" })
@@ -327,7 +326,7 @@ export default function TransactionsScreen() {
 										style={[
 											styles.typeButtonText,
 											formData.type === "income" &&
-												styles.typeButtonTextActive,
+											styles.typeButtonTextActive,
 										]}
 									>
 										Income

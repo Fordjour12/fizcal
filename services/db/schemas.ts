@@ -10,6 +10,7 @@ export const accounts = sqliteTable("accounts", {
 	type: text("type").notNull(),
 	balance: real("balance").notNull().default(0),
 	accountNumber: text("account_number"),
+	currency: text("currency").notNull().default("USD"),
 	createdAt: integer("created_at", { mode: "timestamp" })
 		.notNull()
 		.default(sql`CURRENT_TIMESTAMP`),
@@ -42,11 +43,11 @@ export const budgets = sqliteTable("budgets", {
 });
 
 export const users = sqliteTable("users", {
-    id: text("id").primaryKey(),
-    name: text("name").notNull(),
-    email: text("email").notNull(),
-    currency: text("currency").notNull().default("USD"),
-    createdAt: integer("created_at", { mode: "timestamp" })
-        .notNull()
-        .default(sql`CURRENT_TIMESTAMP`),
+	id: text("id").primaryKey(),
+	name: text("name").notNull(),
+	email: text("email").notNull(),
+	currency: text("currency").notNull().default("USD"),
+	createdAt: integer("created_at", { mode: "timestamp" })
+		.notNull()
+		.default(sql`CURRENT_TIMESTAMP`),
 });

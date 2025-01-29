@@ -4,6 +4,7 @@ export type Account = {
   type: string;
   balance: number;
   accountNumber?: string;
+  currency?: string; // Add this field
 };
 
 export type FormData = {

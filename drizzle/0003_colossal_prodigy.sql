@@ -1,0 +1,1 @@
+ALTER TABLE `accounts` ADD `currency` text DEFAULT 'USD' NOT NULL;

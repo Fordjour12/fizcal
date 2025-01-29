@@ -7,6 +7,7 @@ interface CreditCardProps {
 	accountNumber: string;
 	balance: number;
 	type?: string;
+	currency?: string;
 }
 
 export const CreditCard: React.FC<CreditCardProps> = ({
@@ -14,6 +15,7 @@ export const CreditCard: React.FC<CreditCardProps> = ({
 	accountNumber,
 	balance,
 	type = "debit",
+	currency = "USD",
 }) => {
 	// Mask account number to show only last 4 digits
 	const maskedNumber = `•••• •••• •••• ${accountNumber.slice(-4)}`;
@@ -29,7 +31,7 @@ export const CreditCard: React.FC<CreditCardProps> = ({
 				<View style={styles.cardContent}>
 					<View style={styles.topRow}>
 						<Text style={styles.balance}>
-							${balance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+							{currency === "USD" ? "$" : currency} {balance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
 						</Text>
 						<Text style={styles.type}>{type.toUpperCase()}</Text>
 					</View>

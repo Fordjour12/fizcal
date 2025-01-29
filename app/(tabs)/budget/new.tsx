@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
@@ -11,12 +10,18 @@ import {
     View,
 } from "react-native";
 
+interface Errors {
+    category: string;
+    amount: string;
+}
+
 export default function New() {
-    const [category, setCategory] = useState("");
     const [amount, setAmount] = useState("");
     const [period, setPeriod] = useState("monthly");
-    const [errors, setErrors] = useState({ category: "", amount: "" });
+    const [errors, setErrors] = useState<Errors>({ category: "", amount: "" });
     const [selectedCategoryItem, setSelectedCategoryItem] = useState("");
+    const [isRecurring, setIsRecurring] = useState(false);
+    const [endDate, setEndDate] = useState("");
 
     const periods = ["weekly", "monthly", "yearly"];
     const categories = [
@@ -45,8 +50,7 @@ export default function New() {
         }
     }, [amount, period]);
 
-    const [isRecurring, setIsRecurring] = useState(false);
-    const [endDate, setEndDate] = useState("");
+    const router = useRouter();
 
     const handleCreateBudget = () => {
         const newErrors = {
@@ -56,6 +60,14 @@ export default function New() {
                     ? "Please enter a valid amount"
                     : "",
         };
+
+        if (isRecurring && endDate) {
+            const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+            if (!dateRegex.test(endDate)) {
+                newErrors.amount = "Please enter a valid date (YYYY-MM-DD)";
+            }
+        }
+
         setErrors(newErrors);
 
         if (!newErrors.category && !newErrors.amount) {
@@ -67,22 +79,16 @@ export default function New() {
                 isRecurring,
                 endDate: endDate || null,
             });
+
+            // Navigate back after successful creation
+            router.push("/budget");
         }
     };
-    const router = useRouter()
 
     return (
         <ScrollView style={styles.container}>
-            <LinearGradient colors={["#1E1E1E", "#2C2C2C"]} style={styles.card}>
-                <View style={styles.header}>
-                    <TouchableOpacity
-                        onPress={() => router.back()}
-                        style={styles.backButton}
-                    >
-                        <Ionicons name="arrow-back" size={24} color="#FFF" />
-                    </TouchableOpacity>
-                    <Text style={styles.title}>Create New Budget</Text>
-                </View>
+            <View style={styles.content}>
+                <Text style={styles.title}>Create New Budget</Text>
 
                 <View style={styles.inputContainer}>
                     <Text style={styles.label}>Category</Text>
@@ -197,7 +203,7 @@ export default function New() {
                 >
                     <Text style={styles.createButtonText}>Create Budget</Text>
                 </TouchableOpacity>
-            </LinearGradient>
+            </View>
         </ScrollView>
     );
 }
@@ -249,34 +255,16 @@ const styles = StyleSheet.create({
     },
     container: {
         flex: 1,
-        padding: 16,
         backgroundColor: "#0F172A",
     },
-    card: {
-        backgroundColor: "#1E1E1E",
-        borderRadius: 16,
-        padding: 20,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-        elevation: 5,
-    },
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginBottom: 24,
-    },
-    backButton: {
-        padding: 8,
-        marginRight: 8,
+    content: {
+        padding: 16,
     },
     title: {
-        flex: 1,
         fontSize: 24,
         fontWeight: "bold",
-        textAlign: "center",
         color: "#FFF",
+        marginBottom: 24,
     },
     inputContainer: {
         marginBottom: 20,
@@ -324,6 +312,10 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         padding: 16,
         alignItems: "center",
+    },
+    createButtonDisabled: {
+        backgroundColor: "#666",
+        opacity: 0.7,
     },
     createButtonText: {
         color: "#FFF",
