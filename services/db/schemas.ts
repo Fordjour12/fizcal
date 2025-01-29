@@ -31,12 +31,12 @@ export const transactions = sqliteTable("transactions", {
 });
 
 export const budgets = sqliteTable("budgets", {
-	id: text("id").primaryKey(),
+	id: integer("id").primaryKey({ autoIncrement: true }),
 	category: text("category").notNull(),
 	amount: real("amount").notNull(),
-	period: text("period").notNull(), // 'weekly', 'monthly', 'yearly'
-	startDate: integer("start_date", { mode: "timestamp" }).notNull(),
-	endDate: integer("end_date", { mode: "timestamp" }),
+	period: text("period", { enum: ["weekly", "monthly", "yearly"] }).notNull(),
+	startDate: text("start_date").notNull(),
+	endDate: text("end_date"),
 	isRecurring: integer("is_recurring", { mode: "boolean" })
 		.notNull()
 		.default(false),

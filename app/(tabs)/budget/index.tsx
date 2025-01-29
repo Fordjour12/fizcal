@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import Animated, { FadeIn, FadeOut, Layout } from "react-native-reanimated";
 import { Link } from "expo-router";
+import { BudgetList } from "@/components/BudgetList";
 
 type Budget = {
 	id: string;
@@ -36,11 +37,11 @@ export default function BudgetScreen() {
 	const db = drizzle(sqlite, { schema });
 
 	const loadData = useCallback(async () => {
-		if (user?.id) return;
-
 		try {
 			// Load budgets
-			const budgetResults = await db.query.budgets.findMany();
+			const budgetResults = await db.query.budgets.findMany({
+				orderBy: (budgets, { desc }) => [desc(budgets.startDate)]
+			});
 
 			// Calculate spent amount for each budget
 			const budgetsWithSpent = await Promise.all(
@@ -69,6 +70,7 @@ export default function BudgetScreen() {
 
 					return {
 						...budget,
+						id: budget.id.toString(),
 						spent,
 						startDate,
 						endDate: budget.endDate ? new Date(budget.endDate) : undefined,
@@ -81,7 +83,7 @@ export default function BudgetScreen() {
 		} catch (error) {
 			console.error("Error loading budgets:", error);
 		}
-	}, [user?.id, db]);
+	}, [db]);
 
 	useEffect(() => {
 		loadData();
@@ -116,54 +118,7 @@ export default function BudgetScreen() {
 				}
 			>
 				<View style={styles.content}>
-					 {/* Empty State */}
-					 {budgets.length === 0 && (
-						<View style={styles.emptyState}>
-							<Text style={styles.emptyStateText}>No budgets created yet</Text>
-							<Text style={styles.emptyStateSubtext}>
-								Create your first budget to start tracking your expenses
-							</Text>
-						</View>
-					)}
-
-					{/* Budgets List */}
-					<View style={styles.budgetsList}>
-						{budgets.map((budget, index) => (
-							<Animated.View
-								key={budget.id}
-								entering={FadeIn.delay(index * 100).duration(500)}
-								exiting={FadeOut.duration(300)}
-								layout={Layout.springify()}
-							>
-								<LinearGradient
-									colors={getProgressColor(
-										budget.spent || 0,
-										budget.amount,
-									)}
-									style={styles.budgetCard}
-								>
-									<View style={styles.budgetInfo}>
-										<Text style={styles.budgetCategory}>
-											{budget.category}
-										</Text>
-										<Text style={styles.budgetPeriod}>
-											{budget.period.charAt(0).toUpperCase() +
-												budget.period.slice(1)}
-											{budget.isRecurring ? " (Recurring)" : ""}
-										</Text>
-									</View>
-									<View style={styles.budgetAmounts}>
-										<Text style={styles.budgetSpent}>
-											Spent: {formatCurrency(budget.spent || 0)}
-										</Text>
-										<Text style={styles.budgetLimit}>
-											Limit: {formatCurrency(budget.amount)}
-										</Text>
-									</View>
-								</LinearGradient>
-							</Animated.View>
-						))}
-					</View>
+					<BudgetList budgets={budgets} />
 
 					{/* Add Budget Button */}
 					<Link href="/budget/new" asChild>
@@ -195,41 +150,6 @@ const styles = StyleSheet.create({
 	content: {
 		padding: 16,
 	},
-	budgetsList: {
-		gap: 12,
-		marginBottom: 24,
-	},
-	budgetCard: {
-		padding: 16,
-		borderRadius: 12,
-	},
-	budgetInfo: {
-		marginBottom: 8,
-	},
-	budgetCategory: {
-		color: "#F8FAFC",
-		fontSize: 18,
-		fontWeight: "600",
-		marginBottom: 4,
-	},
-	budgetPeriod: {
-		color: "#F8FAFC",
-		fontSize: 14,
-		opacity: 0.8,
-	},
-	budgetAmounts: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-	},
-	budgetSpent: {
-		color: "#F8FAFC",
-		fontSize: 16,
-	},
-	budgetLimit: {
-		color: "#F8FAFC",
-		fontSize: 16,
-		fontWeight: "600",
-	},
 	addButton: {
 		marginTop: 8,
 	},
@@ -242,22 +162,5 @@ const styles = StyleSheet.create({
 		color: "#F8FAFC",
 		fontSize: 16,
 		fontWeight: "600",
-	},
-	emptyState: {
-		alignItems: 'center',
-		justifyContent: 'center',
-		padding: 32,
-		marginBottom: 24,
-	},
-	emptyStateText: {
-		color: '#F8FAFC',
-		fontSize: 18,
-		fontWeight: '600',
-		marginBottom: 8,
-	},
-	emptyStateSubtext: {
-		color: '#94A3B8',
-		fontSize: 14,
-		textAlign: 'center',
 	},
 });
