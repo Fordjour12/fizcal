@@ -15,6 +15,27 @@
       "when": 1737732894617,
       "tag": "0001_equal_golden_guardian",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1737739823904,
+      "tag": "0002_powerful_jubilee",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1738148567603,
+      "tag": "0003_colossal_prodigy",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1738152332400,
+      "tag": "0004_wonderful_beyonder",
+      "breakpoints": true
     }
   ]
 }

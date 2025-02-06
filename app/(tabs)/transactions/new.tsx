@@ -1,223 +1,266 @@
-import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Dimensions } from 'react-native';
-import Colors from '../../../constants/Colors';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import type { Account } from '@/app.d.ts';
+import { KeyboardAwareView } from '@/components/KeyboardAwareView';
+import { useAuth } from '@/contexts/auth';
+import * as schema from '@/services/db/schemas';
+import { drizzle } from 'drizzle-orm/expo-sqlite';
+import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
+import { useSQLiteContext } from 'expo-sqlite';
+import React, { useCallback, useState } from 'react';
+import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-export default function New() {
-  const [amount, setAmount] = useState('0');
-  const [comment, setComment] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('shopping');
+interface TransactionFormData {
+  accountId: string;
+  type: 'expense' | 'income' | 'savings';
+  amount: string;
+  category: string;
+  description: string;
+}
 
-  const handleNumberPress = (num: string) => {
-    if (amount === '0') {
-      setAmount(num);
-    } else {
-      setAmount(amount + num);
-    }
-  };
+const NewTransactionForm = () => {
+  const { user } = useAuth();
+  const sqlite = useSQLiteContext();
+  const db = drizzle(sqlite, { schema });
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [formData, setFormData] = useState<TransactionFormData>({
+    accountId: '',
+    type: 'expense',
+    amount: '',
+    category: '',
+    description: ''
+  });
 
-  const handleDecimalPress = () => {
-    if (!amount.includes('.')) {
-      setAmount(amount + '.');
-    }
-  };
+  const loadAccounts = useCallback(async () => {
+    if (!user?.id) return;
+    const results = await db.query.accounts.findMany({
+      where: (accounts, { eq }) => eq(accounts.userId, user.id),
+    });
+    setAccounts(results as Account[]);
+  }, [user?.id, db]);
 
-  const handleDeletePress = () => {
-    if (amount.length > 1) {
-      setAmount(amount.slice(0, -1));
-    } else {
-      setAmount('0');
-    }
-  };
-
-  const formatAmount = () => {
-    const num = parseFloat(amount);
-    return isNaN(num) ? '0.00' : num.toLocaleString('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+  const resetForm = () => {
+    setFormData({
+      accountId: '',
+      type: 'expense',
+      amount: '',
+      category: '',
+      description: ''
     });
   };
 
-  const CalcButton = ({ onPress, children, style }: any) => (
-    <TouchableOpacity
-      onPress={onPress}
-      style={[styles.calcButton, style]}
-    >
-      <Text style={styles.calcButtonText}>{children}</Text>
-    </TouchableOpacity>
-  );
+  const handleAddTransaction = () => {
+    // TODO: Implement transaction handling logic
+    resetForm();
+  };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.totalContainer}>
-        <LinearGradient
-          colors={[Colors.dark.gradient.primary, Colors.dark.gradient.secondary]}
-          style={styles.gradientBackground}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <Text style={styles.totalLabel}>Total Balance</Text>
-          <Text style={styles.totalAmount}>${formatAmount()}</Text>
-        </LinearGradient>
-      </View>
-
-      <View style={styles.categoryContainer}>
-        <TouchableOpacity
-          style={[
-            styles.categoryButton,
-            selectedCategory === 'cash' && styles.categoryButtonActive
-          ]}
-          onPress={() => setSelectedCategory('cash')}
-        >
-          <Ionicons name="cash-outline" size={24} color={selectedCategory === 'cash' ? Colors.dark.gradient.primary : '#fff'} />
-          <Text style={styles.categoryButtonText}>Cash</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.categoryButton,
-            selectedCategory === 'shopping' && styles.categoryButtonActive
-          ]}
-          onPress={() => setSelectedCategory('shopping')}
-        >
-          <Ionicons name="cart-outline" size={24} color={selectedCategory === 'shopping' ? Colors.dark.gradient.primary : '#fff'} />
-          <Text style={styles.categoryButtonText}>Shopping</Text>
-        </TouchableOpacity>
-      </View>
-
-      <TextInput
-        style={styles.commentInput}
-        placeholder="Add a comment"
-        placeholderTextColor="#666"
-        value={comment}
-        onChangeText={setComment}
-      />
-
-      <View style={styles.keypadContainer}>
-        <View style={styles.keypadRow}>
-          <CalcButton onPress={() => handleNumberPress('7')}>7</CalcButton>
-          <CalcButton onPress={() => handleNumberPress('8')}>8</CalcButton>
-          <CalcButton onPress={() => handleNumberPress('9')}>9</CalcButton>
+    <KeyboardAwareView style={styles.container}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <View style={styles.header}>
+          <Text style={styles.title}>Add Transaction</Text>
+          <Text style={styles.subtitle}>
+            Record your income, expenses, and track your financial flow.
+          </Text>
         </View>
-        <View style={styles.keypadRow}>
-          <CalcButton onPress={() => handleNumberPress('4')}>4</CalcButton>
-          <CalcButton onPress={() => handleNumberPress('5')}>5</CalcButton>
-          <CalcButton onPress={() => handleNumberPress('6')}>6</CalcButton>
-        </View>
-        <View style={styles.keypadRow}>
-          <CalcButton onPress={() => handleNumberPress('1')}>1</CalcButton>
-          <CalcButton onPress={() => handleNumberPress('2')}>2</CalcButton>
-          <CalcButton onPress={() => handleNumberPress('3')}>3</CalcButton>
-        </View>
-        <View style={styles.keypadRow}>
-          <CalcButton onPress={() => handleNumberPress('0')}>0</CalcButton>
-          <CalcButton onPress={handleDecimalPress}>.</CalcButton>
-          <CalcButton onPress={handleDeletePress}>
-            <Ionicons name="backspace-outline" size={24} color="#fff" />
-          </CalcButton>
-        </View>
-      </View>
 
-      <TouchableOpacity style={styles.submitButton}>
-        <LinearGradient
-          colors={[Colors.dark.gradient.primary, Colors.dark.gradient.secondary]}
-          style={styles.submitGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <Ionicons name="checkmark" size={24} color="#fff" />
-        </LinearGradient>
-      </TouchableOpacity>
-    </View>
+        <View style={styles.formContainer}>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Account</Text>
+            <Text style={styles.description}>Select the account for this transaction</Text>
+
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Transaction Type</Text>
+            <Text style={styles.description}>Select the type of transaction</Text>
+            <View style={styles.typeButtons}>
+              {['expense', 'income', 'savings'].map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  onPress={() => setFormData({ ...formData, type: type as 'expense' | 'income' })}
+                  style={[
+                    styles.typeButton,
+                    formData.type === type && styles.selectedType,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.typeText,
+                      formData.type === type && styles.selectedTypeText,
+                    ]}
+                  >
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Amount</Text>
+            <Text style={styles.description}>Enter the transaction amount</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="0.00"
+              value={formData.amount}
+              onChangeText={(text) => setFormData({ ...formData, amount: text })}
+              keyboardType="decimal-pad"
+              placeholderTextColor="#94A3B8"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Category</Text>
+            <Text style={styles.description}>What is this transaction for?</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g., Food, Transport, Salary"
+              value={formData.category}
+              onChangeText={(text) => setFormData({ ...formData, category: text })}
+              placeholderTextColor="#94A3B8"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Description (Optional)</Text>
+            <Text style={styles.description}>Add more details about this transaction</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Add notes about this transaction"
+              value={formData.description}
+              onChangeText={(text) => setFormData({ ...formData, description: text })}
+              placeholderTextColor="#94A3B8"
+            />
+          </View>
+        </View>
+
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={() => router.back()}
+          >
+            <Text style={styles.buttonText}>Cancel</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={handleAddTransaction}>
+            <LinearGradient
+              colors={["#8B5CF6", "#6366F1"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.addButton}
+            >
+              <Text style={styles.buttonText}>Add Transaction</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAwareView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
-    
+    backgroundColor: "#0F172A",
   },
-  totalContainer: {
-    width: '100%',
-    paddingVertical: 32,
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 40,
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 16,
+  },
+  title: {
+    color: "#F8FAFC",
+    fontSize: 28,
+    fontWeight: "bold",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  subtitle: {
+    color: "#94A3B8",
+    fontSize: 16,
+    textAlign: "center",
     marginBottom: 24,
   },
-  gradientBackground: {
-    padding: 20,
-    borderRadius: 16,
-    marginHorizontal: 16,
+  formContainer: {
+    paddingHorizontal: 20,
   },
-  totalLabel: {
-    color: 'rgba(255, 255, 255, 0.7)',
+  inputGroup: {
+    marginBottom: 24,
+  },
+  label: {
+    color: "#F8FAFC",
     fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  description: {
+    color: "#94A3B8",
+    fontSize: 14,
     marginBottom: 8,
   },
-  totalAmount: {
-    color: '#fff',
-    fontSize: 36,
-    fontWeight: 'bold',
-  },
-  categoryContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingHorizontal: 16,
-    marginBottom: 24,
-  },
-  categoryButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    width: '45%',
-  },
-  categoryButtonActive: {
-    backgroundColor: 'rgba(138, 124, 255, 0.2)',
-    borderWidth: 1,
-    borderColor: Colors.dark.gradient.primary,
-  },
-  categoryButtonText: {
-    color: '#fff',
-    marginTop: 8,
-  },
-  commentInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 16,
-    marginHorizontal: 16,
-    marginBottom: 24,
-    color: '#fff',
-  },
-  keypadContainer: {
+  input: {
+    backgroundColor: "#1E293B",
+    borderRadius: 8,
+    color: "#F8FAFC",
+    fontSize: 16,
     padding: 16,
   },
-  keypadRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
+  typeButtons: {
+    flexDirection: "row",
+    gap: 8,
   },
-  calcButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    width: (Dimensions.get('window').width - 64) / 3,
-    height: 64,
-    justifyContent: 'center',
-    alignItems: 'center',
+  typeButton: {
+    flex: 1,
+    backgroundColor: "#1E293B",
+    borderRadius: 8,
+    padding: 16,
+    alignItems: "center",
   },
-  calcButtonText: {
-    color: '#fff',
-    fontSize: 24,
+  selectedType: {
+    backgroundColor: "#8B5CF6",
   },
-  submitButton: {
-    position: 'absolute',
-    bottom: 32,
-    right: 32,
+  typeText: {
+    color: "#94A3B8",
+    fontSize: 16,
   },
-  submitGradient: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
+  selectedTypeText: {
+    color: "#F8FAFC",
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    marginTop: 16,
+  },
+  cancelButton: {
+    backgroundColor: "#475569",
+    borderRadius: 8,
+    padding: 16,
+    flex: 1,
+    marginRight: 8,
+    alignItems: "center",
+  },
+  addButton: {
+    borderRadius: 8,
+    padding: 16,
+    flex: 1,
+    marginLeft: 8,
+    alignItems: "center",
+  },
+  buttonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
+
+export default NewTransactionForm;

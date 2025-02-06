@@ -1,3 +1,4 @@
+import { useAuth } from "@/contexts/auth";
 import * as schema from "@/services/db/schemas";
 import { drizzle } from "drizzle-orm/expo-sqlite";
 import * as Crypto from "expo-crypto";
@@ -17,6 +18,8 @@ export default function SetupAccountScreen() {
 
 	const drizzleDB = drizzle(db, { schema });
 
+	const { user } = useAuth();
+
 	const router = useRouter();
 
 	const handleNext = async () => {
@@ -32,9 +35,10 @@ export default function SetupAccountScreen() {
 			};
 
 			// drizzleDB.insert(accounts).
-			const insertAccount = await drizzleDB
-				.insert(schema.accounts)
-				.values(accountData);
+			const insertAccount = await drizzleDB.insert(schema.accounts).values({
+				userId: String(user?.id),
+				...accountData,
+			});
 
 			// Here you would typically save to your storage solution
 			console.log("Saving account:", insertAccount.lastInsertRowId);
