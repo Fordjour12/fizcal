@@ -2,6 +2,15 @@ import BudgetProgress from "@/components/BudgetProgress";
 import { CreditCard } from "@/components/CreditCard";
 import FinancialSummary from "@/components/FinancialSummary";
 import RecentTransactions from "@/components/RecentTransactions";
+import {
+	ACCENT_BORDER,
+	ACCENT_COLOR,
+	DARK_BACKGROUND,
+	PRIMARY_BUTTON_BG,
+	PRIMARY_BUTTON_TEXT,
+	SUBHEADER_TEXT,
+	WHITE,
+} from "@/constants/Colors";
 import { useAuth } from "@/contexts/auth";
 import { Link } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -57,24 +66,25 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 		marginBottom: 24,
 		gap: 12,
+		backgroundColor: ACCENT_COLOR,
 	},
 	actionButton: {
 		flex: 1,
-		backgroundColor: "rgba(99, 102, 241, 0.1)",
+		backgroundColor: PRIMARY_BUTTON_BG, // Darker background
 		padding: 16,
 		borderRadius: 12,
 		borderWidth: 1,
-		borderColor: "rgba(99, 102, 241, 0.2)",
+		borderColor: ACCENT_BORDER,
 	},
 	actionButtonText: {
-		color: "#FFFFFF",
+		color: PRIMARY_BUTTON_TEXT,
 		fontSize: 16,
 		fontWeight: "600",
 		textAlign: "center",
 	},
 	container: {
 		flex: 1,
-		backgroundColor: "#0F172A",
+		backgroundColor: DARK_BACKGROUND,
 		padding: 16,
 	},
 	header: {
@@ -84,11 +94,11 @@ const styles = StyleSheet.create({
 	greeting: {
 		fontSize: 28,
 		fontWeight: "bold",
-		color: "#FFFFFF",
+		color: WHITE,
 		marginBottom: 8,
 	},
 	subHeader: {
 		fontSize: 16,
-		color: "#94A3B8",
+		color: SUBHEADER_TEXT,
 	},
 });

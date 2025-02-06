@@ -1,4 +1,18 @@
-import RecentTransactions from '@/components/RecentTransactions';
+import React from "react";
+import { Text, View } from "react-native";
+
+export default function Reports() { 
+	return (
+		<View>
+			<Text>Reports</Text>
+		</View>
+		
+	);
+}
+
+
+
+/*import RecentTransactions from '@/components/RecentTransactions';
 import { useAuth } from "@/contexts/auth";
 import * as schema from "@/services/db/schemas";
 import { drizzle } from "drizzle-orm/expo-sqlite";
@@ -203,7 +217,6 @@ export default function Reports() {
 				<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
 			}
 		>
-			{/* Time Frame Selector */}
 			<View style={styles.timeFrameSelector}>
 				{(["week", "month", "year"] as TimeFrame[]).map((timeFrame) => (
 					<TouchableOpacity
@@ -228,7 +241,6 @@ export default function Reports() {
 				))}
 			</View>
 
-			{/* Summary Cards */}
 			<View style={styles.summaryContainer}>
 				<LinearGradient
 					colors={["#059669", "#047857"]}
@@ -261,7 +273,6 @@ export default function Reports() {
 				</LinearGradient>
 			</View>
 
-			{/* Expense Trend Chart */}
 			<View style={styles.chartContainer}>
 				<Text style={styles.chartTitle}>Expense Trend</Text>
 				<LineChart
@@ -290,7 +301,6 @@ export default function Reports() {
 				/>
 			</View>
 
-			{/* Category Breakdown */}
 			<View style={styles.categoryContainer}>
 				<Text style={styles.chartTitle}>Expense Categories</Text>
 				{categoryTotals.length > 0 ? (
@@ -343,7 +353,6 @@ export default function Reports() {
 				)}
 			</View>
 
-			{/* Recent Transactions */}
 			<View style={styles.transactionList}>
 				<Text style={styles.sectionTitle}>Recent Transactions</Text>
 				<RecentTransactions />
@@ -461,4 +470,4 @@ const styles = StyleSheet.create({
 		color: "#fff",
 		marginBottom: 16,
 	},
-});
+}); */

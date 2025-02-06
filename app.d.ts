@@ -13,3 +13,13 @@ export type FormData = {
   balance: string;
   accountNumber: string;
 };
+
+export type Transaction = {
+  id: string;
+  accountId: string;
+  type: 'income' | 'expense';
+  amount: number;
+  category?: string | null;
+  description?: string | null;
+  date: Date;
+};

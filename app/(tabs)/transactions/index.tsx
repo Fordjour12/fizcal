@@ -1,565 +1,152 @@
-import { KeyboardAwareView } from "@/components/KeyboardAwareView";
-import { useAuth } from "@/contexts/auth";
-import * as schema from "@/services/db/schemas";
-import { drizzle } from "drizzle-orm/expo-sqlite";
-import { LinearGradient } from "expo-linear-gradient";
-import { useSQLiteContext } from "expo-sqlite";
-import React, { useCallback, useEffect, useState } from "react";
-import {
-	Modal,
-	RefreshControl,
-	ScrollView,
-	StyleSheet,
-	Text,
-	TextInput,
-	TouchableOpacity,
-	View
-} from "react-native";
-import Animated, { FadeIn, FadeOut, Layout } from "react-native-reanimated";
+import { Transaction as BaseTransaction } from '@/app';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-type Transaction = {
-	id: string;
-	accountId: string;
-	type: "income" | "expense";
-	amount: number;
-	category: string;
-	description: string;
-	date: Date;
+interface Transaction extends BaseTransaction {
+	accountName: string;
+}
+// Import your Drizzle database connection and schema
+// import { db } from '../../../services/db'; // Adjust the path as needed
+// import { transactions } from '../../../services/db/schemas'; // Adjust the path as needed
+// import { eq, sql } from 'drizzle-orm';
+import { DARK_BACKGROUND, PRIMARY_BUTTON_BG, SUBHEADER_TEXT, WHITE } from '@/constants/Colors';
+
+// Function to fetch transactions for the current day from Drizzle
+const fetchDailyTransactions = async (): Promise<Transaction[]> => {
+	// Replace this with your actual data fetching logic using Drizzle
+	// Example:
+	// const today = new Date();
+	// const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+	// const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+
+	// const results = await db.select().from(transactions)
+	//   .where(sql`${transactions.date} >= ${startOfDay.toISOString()} AND ${transactions.date} < ${endOfDay.toISOString()}`);
+
+	// return results as Transaction[];
+	return [
+		{ id: '1', accountId: 'a1', type: 'expense', amount: 25.00, category: 'Food', description: 'Lunch', date: new Date(), accountName: 'Checking Account' },
+		{ id: '2', accountId: 'a2', type: 'income', amount: 100.00, category: 'Salary', description: 'Monthly salary', date: new Date(), accountName: 'Savings Account' },
+		{ id: '3', accountId: 'a1', type: 'expense', amount: 10.50, category: 'Transportation', description: 'Bus fare', date: new Date(), accountName: 'Checking Account' },
+	];
 };
 
-type Account = {
-	id: string;
-	name: string;
-};
+const TransactionItem: React.FC<{ transaction: Transaction }> = ({ transaction }) => {
+	return (
+		<React.Fragment>
 
+			<View style={styles.transactionItem}>
+
+				<View style={styles.transactionHeader}>
+					<Text style={styles.transactionDescription}>{transaction.description}</Text>
+					<Text style={transaction.type === 'income' ? styles.income : styles.expense}>
+						{transaction.type === 'income' ? '+' : '-'} ${transaction.amount.toFixed(2)}
+					</Text>
+				</View>
+				<View>
+					<Text style={styles.transactionCategory}>{transaction.category}</Text>
+					<Text style={styles.transactionAccount}>{transaction.accountName}</Text>
+				</View>
+			</View>
+		</React.Fragment>
+	);
+};
 export default function TransactionsScreen() {
 	const [transactions, setTransactions] = useState<Transaction[]>([]);
-	const [accounts, setAccounts] = useState<Account[]>([]);
-	const [refreshing, setRefreshing] = useState(false);
-	const [modalVisible, setModalVisible] = useState(false);
-	const [searchQuery, setSearchQuery] = useState("");
-	const [formData, setFormData] = useState({
-		accountId: "",
-		type: "expense" as "income" | "expense",
-		amount: "",
-		category: "",
-		description: "",
-	});
-
-	const { user } = useAuth();
-	const sqlite = useSQLiteContext();
-	const db = drizzle(sqlite, { schema });
-
-	const loadData = useCallback(async () => {
-		if (!user?.id) return;
-
-		// Load accounts
-		const accountResults = await db.query.accounts.findMany({
-			where: (accounts, { eq }) => eq(accounts.userId, user.id),
-			columns: {
-				id: true,
-				name: true,
-			},
-		});
-		setAccounts(accountResults);
-
-		// Load transactions
-		const transactionResults = await db.query.transactions.findMany({
-			where: (transactions, { eq, and, inArray }) =>
-				and(
-					inArray(
-						transactions.accountId,
-						accountResults.map((a) => a.id),
-					),
-				),
-		});
-		setTransactions(transactionResults as Transaction[]);
-	}, [user?.id, db]);
+	const router = useRouter();
 
 	useEffect(() => {
-		loadData();
-	}, [loadData]);
-
-	const onRefresh = useCallback(async () => {
-		setRefreshing(true);
-		await loadData();
-		setRefreshing(false);
-	}, [loadData]);
-
-	const handleAddTransaction = async () => {
-		if (!user?.id || !formData.accountId) return;
-
-		try {
-			const newTransaction = {
-				accountId: formData.accountId,
-				type: formData.type,
-				amount: Number.parseFloat(formData.amount),
-				category: formData.category,
-				description: formData.description,
-				date: new Date(),
+		const getTransactions = async () => {
+			const getTransactions = async () => {
+				const data = await fetchDailyTransactions();
+				setTransactions(data);
 			};
 
-			// Update account balance
-			const account = await db.query.accounts.findFirst({
-				where: (accounts, { eq }) => eq(accounts.id, formData.accountId),
-			});
+			getTransactions();
+		};
 
-			if (account) {
-				const balanceChange =
-					formData.type === "income"
-						? Number.parseFloat(formData.amount)
-						: -Number.parseFloat(formData.amount);
+		getTransactions();
+	}, []);
 
-				await db
-					.update(schema.accounts)
-					.set({
-						balance: account.balance + balanceChange,
-					})
-					.where((accounts: { id: { equals: (arg0: string) => any; }; }) => accounts.id.equals(formData.accountId));
-			}
-
-			await db.insert(schema.transactions).values(newTransaction);
-			await loadData();
-			setModalVisible(false);
-			resetForm();
-		} catch (error) {
-			console.error("Error adding transaction:", error);
-		}
-	};
-
-	const resetForm = () => {
-		setFormData({
-			accountId: "",
-			type: "expense",
-			amount: "",
-			category: "",
-			description: "",
-		});
-	};
-
-	const formatCurrency = (amount: number, accountId: string) => {
-		const account = accounts.find((a) => a.id === accountId);
-		return amount.toLocaleString("en-US", {
-			style: "currency",
-			currency: account?.currency || "USD",
-		});
-	};
-
-	const formatDate = (date: Date) => {
-		return new Date(date).toLocaleDateString("en-US", {
-			year: "numeric",
-			month: "short",
-			day: "numeric",
-		});
-	};
-
-	// Filter transactions based on search query
-	const filteredTransactions = transactions.filter(
-		(transaction) =>
-			transaction.description
-				.toLowerCase()
-				.includes(searchQuery.toLowerCase()) ||
-			transaction.category.toLowerCase().includes(searchQuery.toLowerCase()),
-	);
+	const today = new Date();
+	const formattedDate = today.toLocaleDateString('en-US', {
+		weekday: 'long',
+		year: 'numeric',
+		month: 'long',
+		day: 'numeric',
+	});
 
 	return (
-		<KeyboardAwareView style={styles.container}>
-			<ScrollView
-				style={styles.scrollView}
-				refreshControl={
-					<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-				}
-			>
-				<View style={styles.content}>
-					{/* Search Bar */}
-					<View style={styles.searchContainer}>
-						<TextInput
-							style={styles.searchInput}
-							placeholder="Search transactions..."
-							placeholderTextColor="#94A3B8"
-							value={searchQuery}
-							onChangeText={setSearchQuery}
-						/>
-					</View>
-
-					{/* Transactions List */}
-					<View style={styles.transactionsList}>
-						{filteredTransactions.map((transaction, index) => (
-							<Animated.View
-								key={transaction.id}
-								entering={FadeIn.delay(index * 100).duration(500)}
-								exiting={FadeOut.duration(300)}
-								layout={Layout.springify()}
-							>
-								<LinearGradient
-									colors={
-										transaction.type === "income"
-											? ["#059669", "#047857"]
-											: ["#DC2626", "#B91C1C"]
-									}
-									style={styles.transactionCard}
-								>
-									<View style={styles.transactionInfo}>
-										<Text style={styles.transactionDescription}>
-											{transaction.description}
-										</Text>
-										<Text style={styles.transactionCategory}>
-											{transaction.category}
-										</Text>
-										<Text style={styles.transactionDate}>
-											{formatDate(transaction.date)}
-										</Text>
-									</View>
-									<Text
-										style={[
-											styles.transactionAmount,
-											transaction.type === "income"
-												? styles.incomeText
-												: styles.expenseText,
-										]}
-									>
-										{transaction.type === "income" ? "+" : "-"}
-										{formatCurrency(Math.abs(transaction.amount), transaction.accountId)}
-									</Text>
-								</LinearGradient>
-							</Animated.View>
-						))}
-					</View>
-
-					{/* Add Transaction Button */}
-					<TouchableOpacity
-						style={styles.addButton}
-						onPress={() => {
-							resetForm();
-							setModalVisible(true);
-						}}
-					>
-						<LinearGradient
-							colors={["#8B5CF6", "#6366F1"]}
-							start={{ x: 0, y: 0 }}
-							end={{ x: 1, y: 1 }}
-							style={styles.addButtonGradient}
-						>
-							<Text style={styles.addButtonText}>Add Transaction</Text>
-						</LinearGradient>
-					</TouchableOpacity>
-				</View>
+		<View style={styles.container}>
+			<TouchableOpacity style={styles.newTransactionButton} onPress={() => router.push('/transactions/new')}>
+				<Text style={styles.newTransactionButtonText}>New Tansaction</Text>
+			</TouchableOpacity>
+			<Text style={styles.dateHeader}>{formattedDate}</Text>
+			<ScrollView>
+				{transactions.map((transaction) => (
+					<TransactionItem key={transaction.id} transaction={transaction} />
+				))}
 			</ScrollView>
-
-			{/* Add Transaction Modal */}
-			<Modal
-				animationType="slide"
-				transparent={true}
-				visible={modalVisible}
-				onRequestClose={() => setModalVisible(false)}
-			>
-				<View style={styles.modalContainer}>
-					<View style={styles.modalContent}>
-						<Text style={styles.modalTitle}>Add Transaction</Text>
-
-						<View style={styles.formGroup}>
-							<Text style={styles.label}>Account</Text>
-							<View style={styles.accountButtons}>
-								{accounts.map((account) => (
-									<TouchableOpacity
-										key={account.id}
-										style={[
-											styles.accountButton,
-											formData.accountId === account.id &&
-											styles.accountButtonActive,
-										]}
-										onPress={() =>
-											setFormData({
-												...formData,
-												accountId: account.id,
-											})
-										}
-									>
-										<Text
-											style={[
-												styles.accountButtonText,
-												formData.accountId === account.id &&
-												styles.accountButtonTextActive,
-											]}
-										>
-											{account.name}
-										</Text>
-									</TouchableOpacity>
-								))}
-							</View>
-						</View>
-
-						<View style={styles.formGroup}>
-							<Text style={styles.label}>Type</Text>
-							<View style={styles.typeButtons}>
-								<TouchableOpacity
-									style={[
-										styles.typeButton,
-										formData.type === "expense" &&
-										styles.typeButtonActive,
-									]}
-									onPress={() =>
-										setFormData({ ...formData, type: "expense" })
-									}
-								>
-									<Text
-										style={[
-											styles.typeButtonText,
-											formData.type === "expense" &&
-											styles.typeButtonTextActive,
-										]}
-									>
-										Expense
-									</Text>
-								</TouchableOpacity>
-								<TouchableOpacity
-									style={[
-										styles.typeButton,
-										formData.type === "income" &&
-										styles.typeButtonActive,
-									]}
-									onPress={() =>
-										setFormData({ ...formData, type: "income" })
-									}
-								>
-									<Text
-										style={[
-											styles.typeButtonText,
-											formData.type === "income" &&
-											styles.typeButtonTextActive,
-										]}
-									>
-										Income
-									</Text>
-								</TouchableOpacity>
-							</View>
-						</View>
-
-						<TextInput
-							style={styles.input}
-							placeholder="Amount"
-							value={formData.amount}
-							onChangeText={(text) =>
-								setFormData({ ...formData, amount: text })
-							}
-							keyboardType="decimal-pad"
-							placeholderTextColor="#666"
-						/>
-
-						<TextInput
-							style={styles.input}
-							placeholder="Category (e.g., Food, Transport)"
-							value={formData.category}
-							onChangeText={(text) =>
-								setFormData({ ...formData, category: text })
-							}
-							placeholderTextColor="#666"
-						/>
-
-						<TextInput
-							style={styles.input}
-							placeholder="Description"
-							value={formData.description}
-							onChangeText={(text) =>
-								setFormData({ ...formData, description: text })
-							}
-							placeholderTextColor="#666"
-						/>
-
-						<View style={styles.modalButtons}>
-							<TouchableOpacity
-								style={[styles.modalButton, styles.cancelButton]}
-								onPress={() => {
-									setModalVisible(false);
-									resetForm();
-								}}
-							>
-								<Text style={styles.buttonText}>Cancel</Text>
-							</TouchableOpacity>
-
-							<TouchableOpacity
-								style={[styles.modalButton, styles.saveButton]}
-								onPress={handleAddTransaction}
-							>
-								<Text style={styles.buttonText}>Add</Text>
-							</TouchableOpacity>
-						</View>
-					</View>
-				</View>
-			</Modal>
-		</KeyboardAwareView>
+		</View>
 	);
 }
 
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#0F172A",
-	},
-	scrollView: {
-		flex: 1,
-	},
-	content: {
+		backgroundColor: DARK_BACKGROUND, // Match DashboardScreen background
 		padding: 16,
 	},
-	searchContainer: {
+	dateHeader: {
+		fontSize: 24,
+		fontWeight: 'bold',
 		marginBottom: 16,
+		color: WHITE, // Match DashboardScreen header text
 	},
-	searchInput: {
-		backgroundColor: "#1E293B",
-		borderRadius: 12,
+	transactionItem: {
+		backgroundColor: PRIMARY_BUTTON_BG, // Darker background for contrast
 		padding: 16,
-		color: "#F8FAFC",
-		fontSize: 16,
-	},
-	transactionsList: {
-		gap: 12,
-		marginBottom: 24,
-	},
-	transactionCard: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-		padding: 16,
-		borderRadius: 12,
-	},
-	transactionInfo: {
-		flex: 1,
-	},
-	transactionDescription: {
-		color: "#F8FAFC",
-		fontSize: 16,
-		fontWeight: "600",
-		marginBottom: 4,
-	},
-	transactionCategory: {
-		color: "#94A3B8",
-		fontSize: 14,
-		marginBottom: 2,
-	},
-	transactionDate: {
-		color: "#94A3B8",
-		fontSize: 12,
-	},
-	transactionAmount: {
-		fontSize: 18,
-		fontWeight: "600",
-	},
-	incomeText: {
-		color: "#ECFDF5",
-	},
-	expenseText: {
-		color: "#FEE2E2",
-	},
-	addButton: {
-		marginTop: 8,
-	},
-	addButtonGradient: {
-		padding: 16,
-		borderRadius: 12,
-		alignItems: "center",
-	},
-	addButtonText: {
-		color: "#F8FAFC",
-		fontSize: 16,
-		fontWeight: "600",
-	},
-	modalContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		backgroundColor: "rgba(0, 0, 0, 0.5)",
-	},
-	modalContent: {
-		backgroundColor: "#1E293B",
-		padding: 20,
-		borderRadius: 16,
-		width: "90%",
-	},
-	modalTitle: {
-		fontSize: 20,
-		fontWeight: "bold",
-		color: "#FFFFFF",
-		marginBottom: 20,
-		textAlign: "center",
-	},
-	formGroup: {
-		marginBottom: 16,
-	},
-	label: {
-		color: "#94A3B8",
-		fontSize: 14,
+		borderRadius: 8,
+		shadowColor: '#000',
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.1,
+		shadowRadius: 4,
+		elevation: 2,
 		marginBottom: 8,
 	},
-	accountButtons: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: 8,
+	newTransactionButton: {
+		backgroundColor: PRIMARY_BUTTON_BG,
+		padding: 10,
+		borderRadius: 5,
+		alignItems: 'center',
+		marginBottom: 10,
 	},
-	accountButton: {
-		paddingHorizontal: 12,
-		paddingVertical: 6,
-		borderRadius: 8,
-		backgroundColor: "#334155",
+	newTransactionButtonText: {
+		color: WHITE,
+		fontSize: 16,
+		fontWeight: 'bold',
 	},
-	accountButtonActive: {
-		backgroundColor: "#4F46E5",
+	transactionHeader: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
 	},
-	accountButtonText: {
-		color: "#94A3B8",
-		fontSize: 14,
+	transactionDescription: {
+		fontSize: 18,
+		fontWeight: 'semibold',
+		color: WHITE, // White text for description
 	},
-	accountButtonTextActive: {
-		color: "#FFFFFF",
+	income: {
+		color: 'green',
 	},
-	typeButtons: {
-		flexDirection: "row",
-		gap: 8,
+	expense: {
+		color: 'red',
 	},
-	typeButton: {
-		flex: 1,
-		paddingVertical: 8,
-		borderRadius: 8,
-		backgroundColor: "#334155",
-		alignItems: "center",
+	transactionCategory: {
+		color: SUBHEADER_TEXT, // Grayish color for category
 	},
-	typeButtonActive: {
-		backgroundColor: "#4F46E5",
-	},
-	typeButtonText: {
-		color: "#94A3B8",
-		fontSize: 14,
-	},
-	typeButtonTextActive: {
-		color: "#FFFFFF",
-	},
-	input: {
-		backgroundColor: "#334155",
-		padding: 12,
-		borderRadius: 8,
-		color: "#FFFFFF",
-		marginBottom: 12,
-	},
-	modalButtons: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		marginTop: 20,
-	},
-	modalButton: {
-		flex: 1,
-		padding: 12,
-		borderRadius: 8,
-		marginHorizontal: 5,
-	},
-	cancelButton: {
-		backgroundColor: "#475569",
-	},
-	saveButton: {
-		backgroundColor: "#4F46E5",
-	},
-	buttonText: {
-		color: "#FFFFFF",
-		textAlign: "center",
-		fontWeight: "600",
+	transactionAccount: {
+		color: SUBHEADER_TEXT,
+		fontSize: 12,
 	},
 });
